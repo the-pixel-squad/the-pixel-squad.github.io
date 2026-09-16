@@ -1,0 +1,56 @@
+name: Fix photo names
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  fix-names:
+    if: "!contains(github.event.head_commit.message, 'Fix photo names')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore verified gallery names
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text()
+          replacements = {
+            'data-caption="Cave light"': 'data-caption="GOLDEN HOUR"',
+            'alt="Cave light"': 'alt="GOLDEN HOUR"',
+            '<span class="frame-title">Cave light</span>': '<span class="frame-title">GOLDEN HOUR</span>',
+            'data-caption="Darjeeling"': 'data-caption="LAST LIGHT"',
+            'alt="Darjeeling mountain landscape"': 'alt="LAST LIGHT"',
+            '<span class="frame-title">Darjeeling</span>': '<span class="frame-title">LAST LIGHT</span>',
+            'data-caption="Mountain mist"': 'data-caption="BLUE HOUR"',
+            'alt="Mountain landscape in mist"': 'alt="BLUE HOUR"',
+            '<span class="frame-title">Mountain mist</span>': '<span class="frame-title">BLUE HOUR</span>',
+            'data-caption="Victoria Memorial"': 'data-caption="OCEAN LIGHT"',
+            'alt="Victoria Memorial at night"': 'alt="OCEAN LIGHT"',
+            '<span class="frame-title">Victoria Memorial</span>': '<span class="frame-title">OCEAN LIGHT</span>',
+            'data-caption="Rainy street"': 'data-caption="AFTER THE WAVE"',
+            'alt="Rainy city street at night"': 'alt="AFTER THE WAVE"',
+            '<span class="frame-title">Rainy street</span>': '<span class="frame-title">AFTER THE WAVE</span>',
+            'data-caption="Ocean light"': 'data-caption="VICTORIA MEMORIAL"',
+            'alt="Ocean under a pastel sky"': 'alt="VICTORIA MEMORIAL"',
+            '<span class="frame-title">Ocean light</span>': '<span class="frame-title">VICTORIA MEMORIAL</span>',
+          }
+          for old, new in replacements.items():
+              if old not in s:
+                  raise SystemExit(f'Missing expected text: {old}')
+              s = s.replace(old, new, 1)
+          p.write_text(s)
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Fix photo names"
+          git push
+      - name: Remove one-time workflow
+        if: success()
+        run: |
+          rm .github/workflows/fix-photo-names.yml
+          git add .github/workflows/fix-photo-names.yml
+          git commit -m "Remove one-time photo name workflow"
+          git push
