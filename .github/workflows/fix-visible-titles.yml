@@ -1,0 +1,48 @@
+name: Fix visible gallery title labels
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Correct visible labels
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text()
+          replacements = {
+            '<span class="frame-title">Golden hour</span><span class="frame-tag">Sky</span>': '<span class="frame-title">Cave light</span><span class="frame-tag">Nature</span>',
+            '<span class="frame-title">Last light</span><span class="frame-tag">Sky · Clouds</span>': '<span class="frame-title">Darjeeling</span><span class="frame-tag">Sky · Clouds</span>',
+            '<span class="frame-title">Blue hour</span><span class="frame-tag">Sky</span>': '<span class="frame-title">Mountain mist</span><span class="frame-tag">Sky · Clouds</span>',
+            '<span class="frame-title">Ocean light</span><span class="frame-tag">Sea · Sky</span>': '<span class="frame-title">Victoria Memorial</span><span class="frame-tag">City · Night</span>',
+            '<span class="frame-title">After the wave</span><span class="frame-tag">Sea · Sky</span>': '<span class="frame-title">Rainy street</span><span class="frame-tag">City · Night</span>',
+            '<span class="frame-title">Victoria Memorial</span><span class="frame-tag">City</span>': '<span class="frame-title">Ocean light</span><span class="frame-tag">Sea · Sky</span>',
+          }
+          for old, new in replacements.items():
+              if old not in s:
+                  raise SystemExit(f'Missing expected visible label: {old}')
+              s = s.replace(old, new, 1)
+          p.write_text(s)
+          PY
+      - name: Commit labels
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Fix visible photo title labels" || exit 0
+          git push
+      - name: Remove one-time workflow
+        if: always()
+        run: |
+          rm -f .github/workflows/fix-visible-titles.yml
+          git add .github/workflows/fix-visible-titles.yml
+          git commit -m "Remove one-time visible title workflow" || exit 0
+          git push
