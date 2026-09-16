@@ -1,6 +1,7 @@
 name: Fix frame names
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
 permissions:
   contents: write
 jobs:
@@ -16,42 +17,22 @@ jobs:
           p = Path('index.html')
           s = p.read_text()
           names = {
-            'city-03.jpg':'City 03',
-            'ocean-01.jpg':'Ocean 01',
-            'cave.jpg':'Cave',
-            'darjeeling.jpg':'Darjeeling',
-            'hills-01.jpg':'Hills 01',
-            'memorial-night.jpg':'Memorial Night',
-            'ocean-02.jpg':'Ocean 02',
-            'sky-clouds.jpg':'Sky Clouds',
-            'temple-night.jpg':'Temple Night',
-            'temple-day.jpg':'Temple Day',
-            'skyline-sun.jpg':'Skyline Sun',
-            'skyline-lamps-01.jpg':'Skyline Lamps 01',
-            'skyline-lamps-02.jpg':'Skyline Lamps 02',
-            'skyline-road.jpg':'Skyline Road',
-            'skyline-dusk.jpg':'Skyline Dusk',
-            '20260904_144751.jpg.jpeg':'20260904 144751',
-            'Screenshot_20260904_181814_Instagram.jpg.jpeg':'Screenshot 20260904 181814 Instagram'
+            'city-03.jpg':'City 03','ocean-01.jpg':'Ocean 01','cave.jpg':'Cave','darjeeling.jpg':'Darjeeling','hills-01.jpg':'Hills 01','memorial-night.jpg':'Memorial Night','ocean-02.jpg':'Ocean 02','sky-clouds.jpg':'Sky Clouds','temple-night.jpg':'Temple Night','temple-day.jpg':'Temple Day','skyline-sun.jpg':'Skyline Sun','skyline-lamps-01.jpg':'Skyline Lamps 01','skyline-lamps-02.jpg':'Skyline Lamps 02','skyline-road.jpg':'Skyline Road','skyline-dusk.jpg':'Skyline Dusk','20260904_144751.jpg.jpeg':'20260904 144751','Screenshot_20260904_181814_Instagram.jpg.jpeg':'Screenshot 20260904 181814 Instagram'
           }
           pattern = re.compile(r'(<button class="frame[^>]*>.*?<img src="([^"]+)"[^>]*alt=")[^"]*("[^>]*>.*?<span class="frame-title">)[^<]*(</span>.*?<span class="frame-tag">.*?</span></span></button>)', re.S)
           def repl(m):
-              filename = m.group(2).split('/')[-1]
-              name = names.get(filename)
-              if not name:
-                  return m.group(0)
-              return m.group(1) + name + m.group(3) + name + m.group(4)
+              name = names.get(m.group(2).split('/')[-1])
+              return m.group(1)+name+m.group(3)+name+m.group(4) if name else m.group(0)
           s = pattern.sub(repl, s)
-          # Also update data-caption for the same frames.
           for filename, name in names.items():
-              s = re.sub(r'(data-caption=")[^"]*("[^>]*><img src="images/' + re.escape(filename) + r'"|data-caption=")[^"]*("[^>]*><img src="' + re.escape(filename) + r'")', lambda m: m.group(1)+name+m.group(2), s)
+              s = re.sub(r'(data-caption=")[^"]*("[^>]*><img src="[^\"]*'+re.escape(filename)+r'")', lambda m:m.group(1)+name+m.group(2), s)
           p.write_text(s)
           PY
       - name: Commit and remove workflow
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html .github/workflows/fix-frame-names.yml
+          git add index.html
           git diff --cached --quiet || git commit -m "Fix gallery frame names"
           git rm .github/workflows/fix-frame-names.yml
           git commit -m "Remove one-time frame name workflow"
