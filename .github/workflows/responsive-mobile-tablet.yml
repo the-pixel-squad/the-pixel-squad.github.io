@@ -1,0 +1,52 @@
+name: Improve mobile and tablet interactions
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  responsive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update responsive styles
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text()
+
+          old = '.download{right:68px;top:14px;bottom:auto;width:42px;height:42px;font-size:19px}'
+          new = '.download{right:68px;top:14px;bottom:auto;width:auto;height:40px;min-width:96px;padding:0 15px;border-radius:20px;display:flex;align-items:center;justify-content:center;font:10px Arial,sans-serif;letter-spacing:.10em;text-transform:uppercase;text-decoration:none;white-space:nowrap}'
+          if old not in s:
+              raise SystemExit('mobile download style not found')
+          s = s.replace(old, new, 1)
+
+          old = '.frame:hover .frame-info{opacity:1;transform:none}'
+          new = '.frame:hover .frame-info{opacity:1;transform:none}@media (hover:none){.frame-info{opacity:1;transform:none}.frame:active img{transform:scale(1.02)}}'
+          if old not in s:
+              raise SystemExit('frame hover rule not found')
+          s = s.replace(old, new, 1)
+
+          old = '.prev{left:10px}.next{right:10px}.close{right:12px;top:14px}.download{right:68px;top:14px;bottom:auto;width:auto;height:40px;min-width:96px;padding:0 15px;border-radius:20px;display:flex;align-items:center;justify-content:center;font:10px Arial,sans-serif;letter-spacing:.10em;text-transform:uppercase;text-decoration:none;white-space:nowrap}'
+          new = '.prev{left:10px;width:42px;height:42px}.next{right:10px;width:42px;height:42px}.close{right:12px;top:14px;width:42px;height:42px}.download{right:62px;top:14px;bottom:auto;width:auto;height:40px;min-width:96px;padding:0 15px;border-radius:20px;display:flex;align-items:center;justify-content:center;font:10px Arial,sans-serif;letter-spacing:.10em;text-transform:uppercase;text-decoration:none;white-space:nowrap}'
+          # If the first mobile replacement already changed the shared rule, adjust the resulting viewer-control segment.
+          if old in s:
+              s = s.replace(old, new, 1)
+
+          p.write_text(s)
+          PY
+      - name: Commit website fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet && { echo "No changes"; exit 0; }
+          git commit -m "Make mobile and tablet controls touch friendly"
+          git push
+      - name: Remove this workflow
+        if: success()
+        run: |
+          git rm .github/workflows/responsive-mobile-tablet.yml
+          git commit -m "Remove one-time responsive workflow"
+          git push
