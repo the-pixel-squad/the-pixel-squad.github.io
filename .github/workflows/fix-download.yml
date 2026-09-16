@@ -1,0 +1,37 @@
+name: Fix download button position
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Move download button beside close
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          s=s.replace('.download{right:25px;bottom:24px;width:auto;height:42px;padding:0 18px;border-radius:22px;font:10px Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase}', '.download{right:85px;top:23px;bottom:auto;width:48px;height:48px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;font:22px Arial,sans-serif;letter-spacing:0}')
+          s=s.replace('.close{right:12px;top:14px}.download{right:12px;bottom:52px}', '.close{right:12px;top:14px}.download{right:68px;top:14px;bottom:auto;width:42px;height:42px;font-size:19px}')
+          p.write_text(s)
+          PY
+          git config user.name 'the-pixel-squad'
+          git config user.email 'californiaboss224@gmail.com'
+          git add index.html
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Move download button beside close button'
+          git push
+      - name: Remove one-time workflow
+        if: success()
+        run: |
+          rm -f .github/workflows/fix-download.yml
+          git config user.name 'the-pixel-squad'
+          git config user.email 'californiaboss224@gmail.com'
+          git add -u .github/workflows/fix-download.yml
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Remove one-time download fix workflow'
+          git push
