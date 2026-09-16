@@ -1,0 +1,46 @@
+name: Publish category fixes
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  fix:
+    if: github.event.head_commit.message != 'Fix photo titles and categories'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fix mismatched photo labels
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          reps={
+            'data-category="city night" data-no="07" data-caption="Ocean 02"':'data-category="sea" data-no="07" data-caption="Ocean 02"',
+            '<span class="frame-title">Ocean 02</span><span class="frame-tag">City · Night</span>':'<span class="frame-title">Ocean 02</span><span class="frame-tag">Sea</span>',
+            'data-category="sea sky" data-no="08" data-caption="Sky Clouds"':'data-category="sky clouds" data-no="08" data-caption="Sky Clouds"',
+            '<span class="frame-title">Sky Clouds</span><span class="frame-tag">Sea · Sky</span>':'<span class="frame-title">Sky Clouds</span><span class="frame-tag">Sky · Clouds</span>',
+            'data-category="sea" data-no="09" data-caption="Temple Night"':'data-category="temples night" data-no="09" data-caption="Temple Night"',
+            '<span class="frame-title">Temple Night</span><span class="frame-tag">Sea</span>':'<span class="frame-title">Temple Night</span><span class="frame-tag">Temples · Night</span>',
+            'data-category="city clouds" data-no="12" data-caption="Skyline Lamps 01"':'data-category="city" data-no="12" data-caption="Skyline Lamps 01"',
+            '<span class="frame-title">Skyline Lamps 01</span><span class="frame-tag">City · Clouds</span>':'<span class="frame-title">Skyline Lamps 01</span><span class="frame-tag">City</span>',
+            'data-category="roads city" data-no="13" data-caption="Skyline Lamps 02"':'data-category="city" data-no="13" data-caption="Skyline Lamps 02"',
+            '<span class="frame-title">Skyline Lamps 02</span><span class="frame-tag">Roads</span>':'<span class="frame-title">Skyline Lamps 02</span><span class="frame-tag">City</span>',
+            'data-caption="20260904 144751"><img src="20260904_144751.jpg.jpeg" alt="20260904 144751"':'data-caption="Temple Detail 01"><img src="20260904_144751.jpg.jpeg" alt="Temple Detail 01"',
+            '<span class="frame-title">20260904 144751</span>':'<span class="frame-title">Temple Detail 01</span>',
+            'data-caption="Screenshot 20260904 181814 Instagram"><img src="Screenshot_20260904_181814_Instagram.jpg.jpeg" alt="Screenshot 20260904 181814 Instagram"':'data-caption="Temple Detail 02"><img src="Screenshot_20260904_181814_Instagram.jpg.jpeg" alt="Temple Detail 02"',
+            '<span class="frame-title">Screenshot 20260904 181814 Instagram</span>':'<span class="frame-title">Temple Detail 02</span>',
+          }
+          for a,b in reps.items():
+              if a not in s:
+                  raise SystemExit(f'missing expected text: {a}')
+              s=s.replace(a,b,1)
+          p.write_text(s)
+          PY
+          rm .github/workflows/publish-category-fixes.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html .github/workflows/publish-category-fixes.yml
+          git commit -m 'Fix photo titles and categories'
+          git push
