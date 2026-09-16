@@ -1,0 +1,45 @@
+name: fix-gallery
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Replace duplicate gallery frames
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          reps={
+          'data-no="01" data-caption="City at dusk"><img src="images/city-02.jpg" alt="City at dusk" loading="eager">':'data-no="01" data-caption="City detail"><img src="images/city-03.jpg" alt="City detail" loading="eager">',
+          'data-no="02" data-caption="Night walkway"><img src="images/city-01.jpg" alt="Night walkway" loading="lazy">':'data-no="02" data-caption="Coastal light"><img src="images/ocean-01.jpg" alt="Coastal light" loading="lazy">',
+          'data-no="10" data-caption="Cloud study"><img src="images/memorial-night.jpg" alt="Cloud study" loading="lazy">':'data-no="10" data-caption="Temple daylight"><img src="images/temple-day.jpg" alt="Temple daylight" loading="lazy">',
+          'data-category="city" data-no="01"':'data-category="city" data-no="01"',
+          'data-category="city night" data-no="02"':'data-category="sea" data-no="02"',
+          'data-category="sky clouds" data-no="10"':'data-category="temples" data-no="10"',
+          }
+          for a,b in reps.items():
+              if a not in s:
+                  raise SystemExit(f'Missing expected text: {a}')
+              s=s.replace(a,b,1)
+          s=s.replace('<button class="frame b" data-category="sea" data-no="02" data-caption="Coastal light"><img src="images/ocean-01.jpg" alt="Coastal light" loading="lazy"><span class="frame-info"><span class="frame-title">Night walkway</span><span class="frame-tag">City · Night</span>', '<button class="frame b" data-category="sea" data-no="02" data-caption="Coastal light"><img src="images/ocean-01.jpg" alt="Coastal light" loading="lazy"><span class="frame-info"><span class="frame-title">Coastal light</span><span class="frame-tag">Sea</span>',1)
+          s=s.replace('<button class="frame j" data-category="temples" data-no="10" data-caption="Temple daylight"><img src="images/temple-day.jpg" alt="Temple daylight" loading="lazy"><span class="frame-info"><span class="frame-title">Cloud study</span><span class="frame-tag">Sky · Clouds</span>', '<button class="frame j" data-category="temples" data-no="10" data-caption="Temple daylight"><img src="images/temple-day.jpg" alt="Temple daylight" loading="lazy"><span class="frame-info"><span class="frame-title">Temple daylight</span><span class="frame-tag">Temples</span>',1)
+          s=s.replace('<button class="frame a" data-category="city" data-no="01" data-caption="City detail"><img src="images/city-03.jpg" alt="City detail" loading="eager"><span class="frame-info"><span class="frame-title">City at dusk</span>', '<button class="frame a" data-category="city" data-no="01" data-caption="City detail"><img src="images/city-03.jpg" alt="City detail" loading="eager"><span class="frame-info"><span class="frame-title">City detail</span>',1)
+          p.write_text(s)
+          PY
+      - name: Commit fix and remove workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html .github/workflows/fix-gallery.yml
+          git commit -m 'Fix duplicate and missing gallery photos'
+          git push
+          git rm .github/workflows/fix-gallery.yml
+          git commit -m 'Remove one-time gallery fix workflow'
+          git push
